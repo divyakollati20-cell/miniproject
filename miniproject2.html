@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Project Manager</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, sans-serif;
+}
+
+body{
+    background:#f4f6f9;
+    padding:20px;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+}
+
+h1{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+.admin-panel{
+    background:#fff;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom:30px;
+}
+
+.admin-panel h2{
+    margin-bottom:15px;
+}
+
+input, textarea{
+    width:100%;
+    padding:10px;
+    margin:8px 0;
+    border:1px solid #ccc;
+    border-radius:5px;
+}
+
+button{
+    padding:10px 20px;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+.add-btn{
+    background:#28a745;
+    color:white;
+}
+
+.update-btn{
+    background:#ff9800;
+    color:white;
+}
+
+.delete-btn{
+    background:red;
+    color:white;
+    margin-top:10px;
+}
+
+.portfolio{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+    gap:20px;
+}
+
+.card{
+    background:white;
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+.card img{
+    width:100%;
+    height:200px;
+    object-fit:cover;
+}
+
+.card-content{
+    padding:15px;
+}
+
+.card-content h3{
+    margin-bottom:10px;
+}
+
+.links a{
+    text-decoration:none;
+    margin-right:10px;
+    color:#007bff;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>Portfolio Project Manager</h1>
+
+<div class="admin-panel">
+
+<h2>Admin Control Board</h2>
+
+<input type="text" id="title" placeholder="Project Title">
+
+<input type="text" id="category" placeholder="Project Category">
+
+<textarea id="description" placeholder="Project Description"></textarea>
+
+<input type="text" id="image" placeholder="Image URL">
+
+<input type="text" id="github" placeholder="GitHub Link">
+
+<input type="text" id="demo" placeholder="Live Demo Link">
+
+<br><br>
+
+<button class="add-btn" onclick="saveProject()">
+Save Project
+</button>
+
+</div>
+
+<h2>User Portfolio</h2>
+
+<br>
+
+<div id="portfolio" class="portfolio"></div>
+
+</div>
+
+<script>
+
+let editIndex = -1;
+
+function getProjects(){
+    return JSON.parse(localStorage.getItem("projects")) || [];
+}
+
+function saveProjects(projects){
+    localStorage.setItem(
+        "projects",
+        JSON.stringify(projects)
+    );
+}
+
+function renderProjects(){
+
+    const portfolio =
+    document.getElementById("portfolio");
+
+    const projects =
+    getProjects();
+
+    portfolio.innerHTML = "";
+
+    projects.forEach((project,index)=>{
+
+        portfolio.innerHTML += `
+        <div class="card">
+
+            <img src="${project.image}"
+            onerror="this.src='https://via.placeholder.com/400x200'">
+
+            <div class="card-content">
+
+                <h3>${project.title}</h3>
+
+                <p><b>Category:</b>
+                ${project.category}</p>
+
+                <p>${project.description}</p>
+
+                <br>
+
+                <div class="links">
+
+                    <a href="${project.github}"
+                    target="_blank">
+                    GitHub
+                    </a>
+
+                    <a href="${project.demo}"
+                    target="_blank">
+                    Live Demo
+                    </a>
+
+                </div>
+
+                <br>
+
+                <button
+                class="update-btn"
+                onclick="editProject(${index})">
+                Edit
+                </button>
+
+                <button
+                class="delete-btn"
+                onclick="deleteProject(${index})">
+                Delete
+                </button>
+
+            </div>
+
+        </div>
+        `;
+    });
+}
+
+function saveProject(){
+
+    const title =
+    document.getElementById("title").value;
+
+    const category =
+    document.getElementById("category").value;
+
+    const description =
+    document.getElementById("description").value;
+
+    const image =
+    document.getElementById("image").value;
+
+    const github =
+    document.getElementById("github").value;
+
+    const demo =
+    document.getElementById("demo").value;
+
+    const project = {
+        title,
+        category,
+        description,
+        image,
+        github,
+        demo
+    };
+
+    let projects = getProjects();
+
+    if(editIndex === -1){
+        projects.push(project);
+    }else{
+        projects[editIndex] = project;
+        editIndex = -1;
+    }
+
+    saveProjects(projects);
+
+    clearForm();
+
+    renderProjects();
+}
+
+function editProject(index){
+
+    const projects =
+    getProjects();
+
+    const p =
+    projects[index];
+
+    document.getElementById("title").value =
+    p.title;
+
+    document.getElementById("category").value =
+    p.category;
+
+    document.getElementById("description").value =
+    p.description;
+
+    document.getElementById("image").value =
+    p.image;
+
+    document.getElementById("github").value =
+    p.github;
+
+    document.getElementById("demo").value =
+    p.demo;
+
+    editIndex = index;
+}
+
+function deleteProject(index){
+
+    let projects =
+    getProjects();
+
+    projects.splice(index,1);
+
+    saveProjects(projects);
+
+    renderProjects();
+}
+
+function clearForm(){
+
+    document.getElementById("title").value="";
+    document.getElementById("category").value="";
+    document.getElementById("description").value="";
+    document.getElementById("image").value="";
+    document.getElementById("github").value="";
+    document.getElementById("demo").value="";
+}
+
+renderProjects();
+
+</script>
+
+</body>
+</html>
