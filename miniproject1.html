@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notes Taking App</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    background:#f4f6f9;
+}
+
+.container{
+    display:flex;
+    height:100vh;
+}
+
+.sidebar{
+    width:260px;
+    background:#1f2937;
+    color:white;
+    padding:20px;
+    overflow-y:auto;
+}
+
+.sidebar h2{
+    margin-bottom:15px;
+}
+
+.sidebar input,
+.sidebar button{
+    width:100%;
+    padding:10px;
+    margin-top:8px;
+    border:none;
+    border-radius:5px;
+}
+
+.sidebar button{
+    background:#3b82f6;
+    color:white;
+    cursor:pointer;
+}
+
+.sidebar button:hover{
+    background:#2563eb;
+}
+
+.folder-item{
+    background:#374151;
+    padding:10px;
+    margin-top:8px;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+.folder-item:hover{
+    background:#4b5563;
+}
+
+.active-folder{
+    background:#2563eb;
+}
+
+.main{
+    flex:1;
+    padding:20px;
+    overflow-y:auto;
+}
+
+.main h1{
+    margin-bottom:15px;
+    color:#1f2937;
+}
+
+input[type=text]{
+    width:100%;
+    padding:10px;
+    margin-bottom:10px;
+    border:1px solid #ccc;
+    border-radius:5px;
+}
+
+.toolbar{
+    margin-bottom:10px;
+}
+
+.toolbar button{
+    padding:8px 12px;
+    margin-right:5px;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+    background:#e5e7eb;
+}
+
+.toolbar button:hover{
+    background:#d1d5db;
+}
+
+#editor{
+    min-height:200px;
+    background:white;
+    border:1px solid #ccc;
+    padding:15px;
+    border-radius:5px;
+    margin-bottom:15px;
+}
+
+.save-btn{
+    background:#10b981;
+    color:white;
+    padding:10px 20px;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+.save-btn:hover{
+    background:#059669;
+}
+
+.note{
+    background:white;
+    margin-top:15px;
+    padding:15px;
+    border-radius:8px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+.note h3{
+    color:#111827;
+}
+
+.tag{
+    display:inline-block;
+    background:#3b82f6;
+    color:white;
+    padding:4px 8px;
+    margin:3px;
+    border-radius:20px;
+    font-size:12px;
+}
+
+.note-actions{
+    margin-top:10px;
+}
+
+.note-actions button{
+    padding:6px 12px;
+    margin-right:5px;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+.delete-btn{
+    background:#ef4444;
+    color:white;
+}
+
+.edit-btn{
+    background:#f59e0b;
+    color:white;
+}
+
+.search-box{
+    margin-top:20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+        <h2>📁 Folders</h2>
+
+        <input type="text" id="folderInput" placeholder="New Folder">
+
+        <button onclick="addFolder()">Add Folder</button>
+
+        <div id="folderList"></div>
+
+    </div>
+
+    <!-- Main Area -->
+    <div class="main">
+
+        <h1>📝 Notes Taking App</h1>
+
+        <input type="text" id="title" placeholder="Note Title">
+
+        <input type="text" id="tags" placeholder="Tags (example: java, project, exam)">
+
+        <div class="toolbar">
+            <button onclick="formatText('bold')"><b>B</b></button>
+            <button onclick="formatText('italic')"><i>I</i></button>
+            <button onclick="formatText('underline')"><u>U</u></button>
+        </div>
+
+        <div id="editor" contenteditable="true">
+            Start writing here...
+        </div>
+
+        <button class="save-btn" onclick="saveNote()">
+            Save Note
+        </button>
+
+        <div class="search-box">
+            <input
+                type="text"
+                id="search"
+                placeholder="Search Notes..."
+                onkeyup="searchNotes()">
+        </div>
+
+        <div id="notesContainer"></div>
+
+    </div>
+
+</div>
+
+<script>
+
+let folders = JSON.parse(localStorage.getItem("folders")) || ["General"];
+
+let notes = JSON.parse(localStorage.getItem("notes")) || [];
+
+let currentFolder = "General";
+
+let editingId = null;
+
+function saveData(){
+    localStorage.setItem("folders", JSON.stringify(folders));
+    localStorage.setItem("notes", JSON.stringify(notes));
+}
+
+function addFolder(){
+
+    let folderName =
+        document.getElementById("folderInput").value.trim();
+
+    if(folderName === "") return;
+
+    if(!folders.includes(folderName)){
+        folders.push(folderName);
+        saveData();
+        renderFolders();
+    }
+
+    document.getElementById("folderInput").value="";
+}
+
+function renderFolders(){
+
+    let folderList =
+        document.getElementById("folderList");
+
+    folderList.innerHTML="";
+
+    folders.forEach(folder=>{
+
+        let div=document.createElement("div");
+
+        div.className="folder-item";
+
+        if(folder===currentFolder){
+            div.classList.add("active-folder");
+        }
+
+        div.innerText=folder;
+
+        div.onclick=()=>{
+            currentFolder=folder;
+            renderFolders();
+            renderNotes();
+        };
+
+        folderList.appendChild(div);
+    });
+}
+
+function formatText(command){
+    document.execCommand(command,false,null);
+}
+
+function saveNote(){
+
+    let title =
+        document.getElementById("title").value.trim();
+
+    let tags =
+        document.getElementById("tags").value
+        .split(",")
+        .map(tag=>tag.trim())
+        .filter(tag=>tag);
+
+    let content =
+        document.getElementById("editor").innerHTML;
+
+    if(title==="" || content===""){
+        alert("Please enter title and content");
+        return;
+    }
+
+    if(editingId){
+
+        let note = notes.find(n=>n.id===editingId);
+
+        note.title = title;
+        note.tags = tags;
+        note.content = content;
+        note.folder = currentFolder;
+
+        editingId = null;
+
+    }else{
+
+        notes.push({
+            id:Date.now(),
+            title,
+            tags,
+            content,
+            folder:currentFolder,
+            created:new Date().toLocaleString()
+        });
+    }
+
+    saveData();
+
+    clearForm();
+
+    renderNotes();
+}
+
+function clearForm(){
+
+    document.getElementById("title").value="";
+    document.getElementById("tags").value="";
+    document.getElementById("editor").innerHTML="";
+}
+
+function renderNotes(){
+
+    let container =
+        document.getElementById("notesContainer");
+
+    container.innerHTML="";
+
+    let filteredNotes =
+        notes.filter(
+            note=>note.folder===currentFolder
+        );
+
+    filteredNotes.reverse().forEach(note=>{
+
+        let noteDiv=document.createElement("div");
+
+        noteDiv.className="note";
+
+        noteDiv.innerHTML=`
+            <h3>${note.title}</h3>
+
+            <small>
+                Folder: ${note.folder}
+                <br>
+                ${note.created}
+            </small>
+
+            <div>
+                ${note.tags.map(
+                    tag=>`<span class="tag">#${tag}</span>`
+                ).join("")}
+            </div>
+
+            <hr style="margin:10px 0">
+
+            <div>${note.content}</div>
+
+            <div class="note-actions">
+                <button class="edit-btn"
+                    onclick="editNote(${note.id})">
+                    Edit
+                </button>
+
+                <button class="delete-btn"
+                    onclick="deleteNote(${note.id})">
+                    Delete
+                </button>
+            </div>
+        `;
+
+        container.appendChild(noteDiv);
+    });
+}
+
+function deleteNote(id){
+
+    if(confirm("Delete this note?")){
+
+        notes = notes.filter(
+            note=>note.id!==id
+        );
+
+        saveData();
+
+        renderNotes();
+    }
+}
+
+function editNote(id){
+
+    let note =
+        notes.find(note=>note.id===id);
+
+    document.getElementById("title").value =
+        note.title;
+
+    document.getElementById("tags").value =
+        note.tags.join(",");
+
+    document.getElementById("editor").innerHTML =
+        note.content;
+
+    currentFolder = note.folder;
+
+    editingId = id;
+
+    renderFolders();
+}
+
+function searchNotes(){
+
+    let keyword =
+        document.getElementById("search")
+        .value
+        .toLowerCase();
+
+    let container =
+        document.getElementById("notesContainer");
+
+    container.innerHTML="";
+
+    notes.filter(note =>
+        note.title.toLowerCase().includes(keyword) ||
+        note.tags.join(" ").toLowerCase().includes(keyword) ||
+        note.content.toLowerCase().includes(keyword)
+    )
+    .forEach(note=>{
+
+        let div=document.createElement("div");
+
+        div.className="note";
+
+        div.innerHTML=`
+            <h3>${note.title}</h3>
+            <p><b>Folder:</b> ${note.folder}</p>
+            <div>${note.content}</div>
+        `;
+
+        container.appendChild(div);
+    });
+}
+
+renderFolders();
+renderNotes();
+
+</script>
+
+</body>
+</html>
